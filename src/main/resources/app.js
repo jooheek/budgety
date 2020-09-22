@@ -58,7 +58,7 @@ var budgetController = (function(){
             //[1,2,3,4,5]다음은 6이 와야하고
             //삭제되는 데이터 때문에 [1,3,4,7,8]과 같은 배열이 나올것이다.
             //따라서 새로 만들어지는 id는 기존 배열의 마지막 숫자 +1이어야한다.
-            //id에 아무것도 안 들어가있는 상태일때는 undefined 발생 -> id 가
+            //id에 아무것도 안 들어가있는 상태일때는 undefined 발생 -> allItems 의 길이를 구하고
 
             //create new item based on 'inc' or 'exp'
             if(type =='exp'){
@@ -121,8 +121,12 @@ var UIcontroller = (function(){
         inputValue:'.add__value',
         inputBtn:'.add__btn',
         incomeContainer :'.income__list',
-        expensesContainer :'.expenses__list'
-    }
+        expensesContainer :'.expenses__list',
+        budgetLabel:'.budget__value',
+        incomeLabel :'.budget__income--value',
+        expensesLabel :'.budget__expenses--value',
+        percentageLabel :'.budget__expenses--percentage'
+    };
     //input box에 입력한 데이터가 expence,income 박스에 넣어져야한다.
     return{
         getInput: function(){
@@ -183,7 +187,19 @@ var UIcontroller = (function(){
 
         },
         //입력버튼을 누르고 input field에 남은 데이터를 삭제해줄 함수
-        
+        displayBudget:function(obj){
+            document.querySelector(DOMstrings.budgetLabel).textContent = obj.budget;
+            document.querySelector(DOMstrings.incomeLabel).textContent = obj.totalInc;
+            document.querySelector(DOMstrings.expensesLabel).textContent = obj.totalExp;
+
+            if(obj.percentage > 0){
+                document.querySelector(DOMstrings.percentageLabel).textContent = obj.percentage+ '%';
+
+            }else{
+                document.querySelector(DOMstrings.percentageLabel).textContent ='---';
+
+            }
+        },
         getDomstrings:function(){
             return DOMstrings;
         }
@@ -222,7 +238,7 @@ var controller = (function(budgetCtrl,UICtrl){
         var budget = budgetCtrl.getBudget();
 
         //3. display the budget on the UI
-        console.log(budget);
+        UICtrl.displayBudget(budget);
     };
 
     var ctrlAddItem = function (){
@@ -250,6 +266,13 @@ var controller = (function(budgetCtrl,UICtrl){
     return {
         init:function (){
             console.log('application has started');
+            UICtrl.displayBudget({
+                budget : 0,
+                totalInc :0,
+                totalExp : 0,
+                percentage : -1
+            });
+            //
             setupEventListeners();
         }
     };
