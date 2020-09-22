@@ -1,3 +1,3 @@
 # budgety
-budget program lectured by jonas
+budget program lectured by jonas(20.09.21 ~)
 
