@@ -17,7 +17,15 @@ var budgetController = (function(){
         this.value = value;
     };
 
-    var data={
+    var calculateTotal = function(type){
+        var sum = 0;
+        data.allItems[type].forEach(function (curr){
+            sum += curr.value;
+        });
+        data.totals[type] = sum;
+    };
+
+    var data = {
         allItems : {
             exp : [],
             inc : []
@@ -25,7 +33,10 @@ var budgetController = (function(){
         totals:{
             exp:0,
             inc:0
-        }
+        },
+        budget : 0,
+        percentage: -1
+        //존재하지 않는다는걸 나타낼때 0 보다 -1을 사용
     };
     // var allExpenses =[];
     // var allIncomes =[];
@@ -62,6 +73,35 @@ var budgetController = (function(){
             return newItem;
 
         },
+
+        calculateBudget :function (){
+            //calculate total income and expenses
+            calculateTotal('exp');
+            calculateTotal('inc');
+
+            //calculate the budget :income -expenses
+            data.budget = data.totals.inc - data.totals.exp;
+
+            //calculate the percentage of income that we spent
+            if(data.totals.inc > 0){
+                data.percentage = Math.round(( data.totals.exp / data.totals.inc ) * 100);
+            }else{
+                data.percentage =-1;
+            }
+
+            //expense = 100 and income 200, spent 50%
+
+        },
+        getBudget:function (){
+            return{
+                budget : data.budget,
+                totalInc : data.totals.inc,
+                totalExp : data.totals.exp,
+                percentage : data.percentage
+            }
+        },
+        //데이터를 받거나 보내주기만 하는 함수를 만든다.
+
         testing : function(){
             console.log(data);
         }
@@ -91,7 +131,7 @@ var UIcontroller = (function(){
                  type : document.querySelector(DOMstrings.inputType).value,
                 //value WILL be either +, -
                  description : document.querySelector(DOMstrings.inputDescription).value,
-                 value : document.querySelector(DOMstrings.inputValue).value
+                 value : parseFloat(document.querySelector(DOMstrings.inputValue).value)
                 //이게 더 길지 않나 보기 힘들고...?- 다른 controller에서 사용하기 용이하게 DOMstrings에 정리하고 return으로 반환함
             };
 
@@ -125,7 +165,25 @@ var UIcontroller = (function(){
             //insert HTML into the DOM
             document.querySelector(element).insertAdjacentHTML('beforeend',newHtml);
         },
+        clearFields :function(){
+            var fields,fieldsArr;
 
+            fields = document.querySelectorAll(DOMstrings.inputDescription + ', '+DOMstrings.inputValue);
+
+            fieldsArr = Array.prototype.slice.call(fields);
+            //field.slice()하고 싶지만 list형이라 불가능 -> array형태로 바꿔준다
+
+            fieldsArr.forEach(function (current,index,array){
+                current.value = "";
+                //clear the fields
+            });
+            //모든 field를 한번에 삭제해주는 함수
+            fieldsArr[0].focus();
+            //field가 모두 정리되고 다시 데이터를 입력하기 용이하게 만들어준다
+
+        },
+        //입력버튼을 누르고 input field에 남은 데이터를 삭제해줄 함수
+        
         getDomstrings:function(){
             return DOMstrings;
         }
@@ -146,7 +204,7 @@ var controller = (function(budgetCtrl,UICtrl){
         //DOMstrings.inputBtn이 아니라 DOM.inputBtn이다. controller로 오면서 변수명을 바꿨기 때문
 
         document.addEventListener('keypress',function(event){
-            if(event.code ==='ENTER'){
+            if(event.code ==='Enter'){
                 //키보드 이벤트
                 ctrlAddItem();
 
@@ -155,7 +213,17 @@ var controller = (function(budgetCtrl,UICtrl){
     };
     //왜 initialization function을 만들어야하는지 알아보자
     //코드가 흩어져보이니까 eventListener로 모음
+    var updateBudget = function(){
 
+        //1. calculate the budget
+        budgetCtrl.calculateBudget();
+
+        //2. return the budget
+        var budget = budgetCtrl.getBudget();
+
+        //3. display the budget on the UI
+        console.log(budget);
+    };
 
     var ctrlAddItem = function (){
         var input, newItem;
@@ -163,15 +231,20 @@ var controller = (function(budgetCtrl,UICtrl){
         //1.Get the field input data
         input = UICtrl.getInput();
 
-        //2.add the item to the budget controller
-        newItem = budgetCtrl.addItem(input.type,input.description,input.value);
+        if(input.description !== "" && !isNaN(input.value) && input.value > 0 ){
+            //2.add the item to the budget controller
+            newItem = budgetCtrl.addItem(input.type,input.description,input.value);
 
-        //3.add the item to the UI
-        UICtrl.addListItem(newItem,input.type);
+            //3.add the item to the UI
+            UICtrl.addListItem(newItem,input.type);
 
-        //4. calculate the budget
+            //4.clear the fields
+            UICtrl.clearFields();
 
-        //5. display the budget on the UI
+            //5.calculate and update budget
+            updateBudget();
+        }
+
     };
 
     return {
