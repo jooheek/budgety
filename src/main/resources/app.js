@@ -9,7 +9,22 @@ var budgetController = (function(){
         this.id =id;
         this.description = description;
         this.value = value;
+        this.percentage = -1;
     };
+
+    Expense.prototype.calcPercentage = function (totalIncome){
+        if(totalIncome > 0){
+            this.percentage = Math.round((this.value / totalIncome) *100);
+        }else {
+            this.percentage = -1;
+        }
+    };
+    //이 함수가 percentage를 계산하면
+
+    Expense.prototype.getPercentage = function (){
+            return this.percentage;
+    };
+    //이 함수가 return함
 
     var Income = function (id,description,value){
         this.id =id;
@@ -94,6 +109,7 @@ var budgetController = (function(){
         },
 
         calculateBudget :function (){
+
             //calculate total income and expenses
             calculateTotal('exp');
             calculateTotal('inc');
@@ -111,6 +127,31 @@ var budgetController = (function(){
             //expense = 100 and income 200, spent 50%
 
         },
+
+        calculatePercentages :function (){
+            /*
+            a = 20
+            b = 10
+            c = 40
+            income = 100
+            a = 20 /100 = 20%
+            income 을 구해야한다
+            * */
+
+            data.allItems.exp.forEach(function (curr){
+                curr.calcPercentage(data.totals.inc);
+            });
+
+        },
+
+        getPercentages : function (){
+            //map은 forEach와 달리 변수를 저장하고 return한다
+            var allPerc = data.allItems.exp.map(function (curr){
+                return curr.getPercentage();
+            });
+            return allPerc;
+        },
+
         getBudget:function (){
             return{
                 budget : data.budget,
@@ -145,9 +186,42 @@ var UIcontroller = (function(){
         incomeLabel :'.budget__income--value',
         expensesLabel :'.budget__expenses--value',
         percentageLabel :'.budget__expenses--percentage',
-        container:'.container'
+        container:'.container',
+        expensesPercLabel:'.item__percentage'
     };
-    //input box에 입력한 데이터가 expence,income 박스에 넣어져야한다.
+
+    var formatNumber = function (num,type){
+        var numSplit,int,dec,type;
+        /*
+        *or - before number
+        * exactly 2 decimal points
+        * comma separating the thousands
+        *
+        * 2000.213 ->2,000.213
+        * */
+        //절댓값 구하기
+        num = Math.abs(num);
+
+        //tofixed 소숫점 x째자리 까리 자름
+        num = num.toFixed(2);
+
+        //.split int 와 decimal 로 분리
+        numSplit= num.split('.');
+
+        int = numSplit[0];
+        if(int.length > 3){
+            int = int.substr(0,int.length -3)+','+int.substr(int.length - 3,3);
+            //input 2310, output 2,310
+        }
+
+        dec = numSplit[1];
+
+        return (type === 'exp' ? '-' : '+') + ' ' + int +'.'+ dec;
+
+    };
+
+
+    //input box에 입력한 데이터가 expense,income 박스에 넣어져야한다.
     return{
         getInput: function(){
             return{
@@ -184,7 +258,7 @@ var UIcontroller = (function(){
             //replace placeholder text with actual data
             newHtml = html.replace('%id%',obj.id);
             newHtml = newHtml.replace('%description%',obj.description);
-            newHtml = newHtml.replace('%value%',obj.value);
+            newHtml = newHtml.replace('%value%',formatNumber(obj.value,type));
 
             //insert HTML into the DOM
             document.querySelector(element).insertAdjacentHTML('beforeend',newHtml);
@@ -215,9 +289,13 @@ var UIcontroller = (function(){
         },
         //입력버튼을 누르고 input field에 남은 데이터를 삭제해줄 함수
         displayBudget:function(obj){
-            document.querySelector(DOMstrings.budgetLabel).textContent = obj.budget;
-            document.querySelector(DOMstrings.incomeLabel).textContent = obj.totalInc;
-            document.querySelector(DOMstrings.expensesLabel).textContent = obj.totalExp;
+            var type;
+
+            obj.budget > 0 ? type = 'inc':type = 'exp';
+
+            document.querySelector(DOMstrings.budgetLabel).textContent = formatNumber(obj.budget,type);
+            document.querySelector(DOMstrings.incomeLabel).textContent = formatNumber(obj.totalInc,'inc');
+            document.querySelector(DOMstrings.expensesLabel).textContent = formatNumber(obj.totalExp,'dec');
 
             if(obj.percentage > 0){
                 document.querySelector(DOMstrings.percentageLabel).textContent = obj.percentage+ '%';
@@ -227,6 +305,26 @@ var UIcontroller = (function(){
 
             }
         },
+
+        displayPercentages :function (percentages){
+
+            var fields = document.querySelectorAll(DOMstrings.expensesPercLabel);
+
+            var nodeListForEach = function (list,callback){
+                for( var i =0; list.length;i++){
+                    callback(list[i],i);
+                }
+            };
+            //callback함수
+            nodeListForEach(fields,function (current,index){
+                if(percentages[index] > 0){
+                    current.textContent = percentages[index] +'%';
+                }else{
+                    current.textContent = '---';
+                }
+            });
+        },
+
         getDomstrings:function(){
             return DOMstrings;
         }
@@ -270,6 +368,17 @@ var controller = (function(budgetCtrl,UICtrl){
         //3. display the budget on the UI
         UICtrl.displayBudget(budget);
     };
+    var updatePercentages = function (){
+
+        //1.calculate percentage
+        budgetCtrl.calculatePercentages();
+
+        //2. read percentages from the budget controller
+        var percentages = budgetCtrl.getPercentages();
+
+        //3.update the UI with the new percentage
+        UICtrl.displayPercentages(percentages);
+    };
 
     var ctrlAddItem = function (){
         var input, newItem;
@@ -289,6 +398,9 @@ var controller = (function(budgetCtrl,UICtrl){
 
             //5.calculate and update budget
             updateBudget();
+
+            //6.calculate and update the percentages
+            updatePercentages();
         }
 
     };
