@@ -187,7 +187,8 @@ var UIcontroller = (function(){
         expensesLabel :'.budget__expenses--value',
         percentageLabel :'.budget__expenses--percentage',
         container:'.container',
-        expensesPercLabel:'.item__percentage'
+        expensesPercLabel:'.item__percentage',
+        dateLabel :'.budget__title--month'
     };
 
     var formatNumber = function (num,type){
@@ -220,6 +221,11 @@ var UIcontroller = (function(){
 
     };
 
+    var nodeListForEach = function (list,callback){
+        for( var i =0; list.length;i++){
+            callback(list[i],i);
+        }
+    };
 
     //input box에 입력한 데이터가 expense,income 박스에 넣어져야한다.
     return{
@@ -250,8 +256,8 @@ var UIcontroller = (function(){
             }else if(type ==='exp'){
                 element = DOMstrings.expensesContainer;
 
-                html = '<div class="item clearfix" id="exp-%id%"> <div class="item__description">%description%</div><div'+
-                'class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">21%</div><div'+
+                html = '<div class="item clearfix" id="exp-%id%"> <div class="item__description">%description%</div><div '+
+                'class="right clearfix"> <div class="item__value">%value%</div><div class="item__percentage">21%</div><div'+
                 'class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
             }
 
@@ -269,6 +275,7 @@ var UIcontroller = (function(){
             var el = document.getElementById(selectorID);
             el.parentNode.removeChild(el);
         },
+        //원래는 displayNodeList에 있었지만 다른 함수에서 사용하기 위해 꺼내 놓음
 
         clearFields :function(){
             var fields,fieldsArr;
@@ -310,11 +317,6 @@ var UIcontroller = (function(){
 
             var fields = document.querySelectorAll(DOMstrings.expensesPercLabel);
 
-            var nodeListForEach = function (list,callback){
-                for( var i =0; list.length;i++){
-                    callback(list[i],i);
-                }
-            };
             //callback함수
             nodeListForEach(fields,function (current,index){
                 if(percentages[index] > 0){
@@ -323,6 +325,30 @@ var UIcontroller = (function(){
                     current.textContent = '---';
                 }
             });
+        },
+
+        displayMonth : function(){
+            var now,year,month,months;
+
+            now = new Date();
+            //var christmas = new Date(2016,11,25)
+            months =['Jan','Feb','Mar','Apr','May','June','July','Aug','Sep','Oct','Nov','Dec'];
+            month = now.getMonth();
+            year = now.getFullYear();
+            document.querySelector(DOMstrings.dateLabel).textContent = months[month]+' '+year;
+        },
+
+        changedType :function (){
+            var fields = document.querySelectorAll(
+                DOMstrings.inputType+', '+
+                DOMstrings.inputDescription+', '+
+                DOMstrings.inputValue
+            );
+            nodeListForEach(fields,function (curr){
+               curr.classList.toggle('red-focus');
+               //add를 사용하면 색이 다시 변하게 할수 없음 toggle을 사용하면 a-b-a-b가능
+            });
+            document.querySelector(DOMstrings.inputBtn).classList.toggle('red');
         },
 
         getDomstrings:function(){
@@ -353,6 +379,9 @@ var controller = (function(budgetCtrl,UICtrl){
         });
         document.querySelector(DOM.container).addEventListener('click',ctrlDeleteItem);
         //container를 클릭할때 해당 container에 있는 데이터가 삭제된다.
+
+        document.querySelector(DOM.inputType).addEventListener('change',UICtrl.changedType);
+
 
     };
     //왜 initialization function을 만들어야하는지 알아보자
@@ -431,6 +460,7 @@ var controller = (function(budgetCtrl,UICtrl){
     return {
         init:function (){
             console.log('application has started');
+            UICtrl.displayMonth();
             UICtrl.displayBudget({
                 budget : 0,
                 totalInc :0,
