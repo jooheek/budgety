@@ -73,6 +73,25 @@ var budgetController = (function(){
             return newItem;
 
         },
+        deleteItem :function (type,id){
+            var ids,index;
+
+            //id =3
+            //data.allItems[type][id];
+            //ids =[1 2 4 6 8]
+            //index = 3
+
+            ids = data.allItems[type].map(function (current){
+                return current.id;
+            });
+
+            index = ids.indexOf(id);
+
+            if(index !== -1){
+                //splice 삭제,split 분리
+                data.allItems[type].splice(index,1)
+            }
+        },
 
         calculateBudget :function (){
             //calculate total income and expenses
@@ -125,7 +144,8 @@ var UIcontroller = (function(){
         budgetLabel:'.budget__value',
         incomeLabel :'.budget__income--value',
         expensesLabel :'.budget__expenses--value',
-        percentageLabel :'.budget__expenses--percentage'
+        percentageLabel :'.budget__expenses--percentage',
+        container:'.container'
     };
     //input box에 입력한 데이터가 expence,income 박스에 넣어져야한다.
     return{
@@ -148,7 +168,7 @@ var UIcontroller = (function(){
             if(type ==='inc'){
                 element = DOMstrings.incomeContainer;
 
-                html = '<div class="item clearfix" id="income-%id%"> <div class="item__description">%description%</div><div ' +
+                html = '<div class="item clearfix" id="inc-%id%"> <div class="item__description">%description%</div><div ' +
                 'class="right clearfix"> <div class="item__value">%value%</div> <div class="item__delete"> <button' +
                 'class="item__delete--btn"> <i class="ion-ios-close-outline"></i> </button> </div> </div> </div>';
                 //""로 작성하면 string으로 인식한다. ''은 아님
@@ -156,7 +176,7 @@ var UIcontroller = (function(){
             }else if(type ==='exp'){
                 element = DOMstrings.expensesContainer;
 
-                html = '<div class="item clearfix" id="expense-%id%"> <div class="item__description">%description%</div><div'+
+                html = '<div class="item clearfix" id="exp-%id%"> <div class="item__description">%description%</div><div'+
                 'class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">21%</div><div'+
                 'class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
             }
@@ -169,6 +189,13 @@ var UIcontroller = (function(){
             //insert HTML into the DOM
             document.querySelector(element).insertAdjacentHTML('beforeend',newHtml);
         },
+
+        deleteListItem:function (selectorID){
+
+            var el = document.getElementById(selectorID);
+            el.parentNode.removeChild(el);
+        },
+
         clearFields :function(){
             var fields,fieldsArr;
 
@@ -226,6 +253,9 @@ var controller = (function(budgetCtrl,UICtrl){
 
             }
         });
+        document.querySelector(DOM.container).addEventListener('click',ctrlDeleteItem);
+        //container를 클릭할때 해당 container에 있는 데이터가 삭제된다.
+
     };
     //왜 initialization function을 만들어야하는지 알아보자
     //코드가 흩어져보이니까 eventListener로 모음
@@ -261,6 +291,29 @@ var controller = (function(budgetCtrl,UICtrl){
             updateBudget();
         }
 
+    };
+
+    var ctrlDeleteItem = function (event){
+        var itemID,splitID,type,ID;
+
+        itemID = event.target.parentNode.parentNode.parentNode.parentNode.id
+        //DOM에 지나치게 의존한 코드 하드 코딩과 다를 바가 없다
+        if(itemID){
+
+            //inc -1 splite을 사용해서 type과 id를 나눈다.
+            splitID =itemID.split('-');
+            type = splitID[0];
+            ID = parseInt(splitID[1]);
+
+            //1.delete item form the data strcture
+            budgetCtrl.deleteItem(type,ID);
+
+            //2. delete item from the ui
+            UICtrl.deleteListItem(itemID);
+
+            //3.update and show the new budget
+            updateBudget();
+        }
     };
 
     return {
